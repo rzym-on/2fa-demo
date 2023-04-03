@@ -1,0 +1,48 @@
+@import "bootstrap/scss/bootstrap";
+
+:root {
+  --background: #242424;
+  --txt-color: rgba(255, 255, 255, 0.87);
+  text-align: center;
+}
+
+body {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.weather-card {
+  width: 300px;
+  height: 300px;
+  background-color: transparent;
+  box-shadow: none;
+  border: 2px grey solid;
+  margin: 10px
+}
+
+.card {
+  margin: 0.5rem;
+}
+
+.router-dashboard {
+  // border-right: 2px rgba(255, 255, 255, 0.87) solid;
+  background-color: #111A
+}
+
+.view-col {
+  height: 100vh;
+}
+
+.nav-list {
+  margin-block: 1.2em;
+  margin-inline: 0.5rem;
+}
+
+.accordion {
+  margin: 20px;
+}
+
+.form-check-label, .form-check-input {
+  margin-inline: 10px;
+}
