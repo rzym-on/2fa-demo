@@ -1,15 +1,13 @@
-﻿using TwoFactorLogin.Models;
-using TwoFactorLogin.Services;
+﻿using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OtpNet;
-using System.Text.Json;
-using System.Text;
+using TwoFactorLogin.Models;
+using TwoFactorLogin.Services;
 
 namespace TwoFactorLogin.Controllers;
 
-[AllowAnonymous]
 [ApiController]
 [Route("[controller]")]
 public class UserController : ControllerBase
@@ -21,6 +19,7 @@ public class UserController : ControllerBase
         _appSettings = settings.Value;
     }
 
+    [AllowAnonymous]
     [HttpPost]
     [Route("register")]
     public ContentResult Register(AuthData data)
@@ -57,6 +56,7 @@ public class UserController : ControllerBase
         };
     }
 
+    [AllowAnonymous]
     [HttpPost]
     [Route("login")]
     public string? Login(AuthData data)
@@ -71,6 +71,7 @@ public class UserController : ControllerBase
         return shortJwt;
     }
 
+    [AllowAnonymous]
     [HttpPost]
     [Route("2fa")]
     public string? Login2Fa([FromBody]string pinCode)

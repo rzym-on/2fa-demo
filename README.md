@@ -17,11 +17,11 @@ Repozytorium, które zawiera (imho) najprostszą możliwą implementację 2FA z 
 # Dlaczego
 Projekt powstał jako nauka uwierzytelniania 2-składnikowego (2FA), co obecnie staje się standardem dla aplikacji/serwisów, którym zależy na bezpieczeństwie dostępu do zasobów/danych. Projekt powstał z narzuconymi sobie wytycznymi:
  - Implementacja 2FA tak łatwo jak to tylko możliwe.
- - Optymalny wygląd (minimum kompnentów, ale niech nie kłują w oczy).
+ - Optymalny wygląd (minimum komponentów, ale niech nie kłują w oczy).
  - Optymalne bezpieczeństwo (minimum kodu, ale możliwie maksimum bezpieczeństwa).
  - Fokus na idei zrozumienia i implementacji.
 
-Ostatnie dotyczy 
+Ostatnie dotyczy tego, że projekt skupia się na zrozumieniu idei działania 2FA z TOTP. Projekt nie jest gotowy produkcji i nie było to istotą tego projektu.
 
 # Technologie wiodące
  - [React](https://pl.reactjs.org)
@@ -98,17 +98,17 @@ Ostatnie dotyczy
 # Diagram rejestracji
 ![Diagram rejestracji](./readme-static/register-chart.png)
 1. `username, hasło` - serwer dostaje `username` i `hasło`.
-2. `generate(kody), generate(totp-secret)` - serwer generuje jednorazowe kody i klucz do totp.
+2. `generate(kody), generate(totp-secret)` - serwer generuje jednorazowe kody i klucz do TOTP.
 3. `username, hash(hasło), hash(kody), totp-secret` - serwer zapisuje użytkownika (z zahashowanym hasłem i jednorazowymi kodami) do bazy.
-4. `totp-uri + jednorazowe kody` - serwer zwraca użytkownikowi niezahashowane kody jednorazowe i totp-uri (który zawiera klucz totp).
-5. `Skanowanie QR Code z totpUri` - użytkownik skanuje kod QR (który zawiera totp-uri). Klucz totp zapisuje się na urządzeniu mobilnym i generuje kody co 30 sekund.
+4. `totp-uri + jednorazowe kody` - serwer zwraca użytkownikowi niezahashowane kody jednorazowe i totp-uri (który zawiera klucz TOTP).
+5. `Skanowanie QR Code z totpUri` - użytkownik skanuje kod QR (który zawiera totp-uri). Klucz TOTP zapisuje się na urządzeniu mobilnym i generuje kody co 30 sekund.
 
 # Diagram logowania
 ![Diagram logowania](./readme-static/login-chart.png)
 1. `username, hasło` - serwer dostaje `username` i `hasło`. Sprawdza, czy hasło zgadza się z tym zaszyfrowanym w bazie.
 2. `JWT 2fa-token` - serwer generuje token JWT, który służy tylko do 2 składnika uwierzytelniania i ma ważność np. 3 minuty.
 3. `6 cyfrowy pin` - użytkownik podaje 6-cyfrowy pin z aplikacji mobilnej.
-4. `2fa-token + pin` - serwer sprawdza, czy JWT token jest prawidłowy. Sprawdza pin pod kątem totp, a jeśli to nie zadziała - sprawdza czy jest to kod jednorazowy.
+4. `2fa-token + pin` - serwer sprawdza, czy JWT token jest prawidłowy. Sprawdza pin pod kątem TOTP, a jeśli to nie zadziała - sprawdza czy jest to kod jednorazowy.
 5. `JWT session-token` - jeśli token i pin się zgadzają - serwer zwraca JWT (z okresem ważności np. 2 dni) do pozostałych obszarów systemu.
 
 # Techniczny use case
@@ -136,18 +136,29 @@ Ostatnie dotyczy
         pinCode: string
     }
     ```
-    Gdzie `pinCode` to wygenerowany totp lub kod jednorazowy.
+    Gdzie `pinCode` to wygenerowany TOTP lub kod jednorazowy.
 9. Serwer weryfikuje `pinCode`:
-    1. Czy jest zgodny z totp.
+    1. Czy jest zgodny z TOTP.
     2. Jeśli nie, sprawdza czy występuje on w kodach jednorazowych użytkownika.
     3. Jeśli tak, usuwa kod przypisany do użytkownikowa.
-10. Jeśli totp lub kod jednorazowy są poprawne - zwraca jwt z dłuższym okresem ważności (2 dni), który pozwala autoryzować się do docelowych endpointów.
+10. Jeśli TOTP lub kod jednorazowy są poprawne - zwraca jwt z dłuższym okresem ważności (2 dni), który pozwala autoryzować się do docelowych endpointów.
 
 # Produkcyjne TODO
 Sam projekt nie jest kompletnym rozwiązaniem produkcyjnym, a bardziej nauką/pomocą/narzędziem podczas implementacji własnych rozwiązań. Jeśli chcesz użyć tego projektu jako podstawy do stworzenia pełnoprawnej aplikacji, użyj poniższej listy TODO, żeby zaimplementować niezbędne składniki.
  - [ ] **Utworzenie warstwy serwisowej**
 
     Na ten moment logika działania aplikacji jest w Controllerach, żeby zminimalizować kod. W aplikacji produkcyjnej należy oddzielić logikę biznesową aplikacji od controllerów.
+
+ - [ ] **Sekrety**
+    
+    Projekt posiada wgrane `server/appsettings.json` i `server/appsettings.Development.json`, żeby uprościć uruchomienie projektu. Domyślnie sekretne klucze i wrażliwe informacje nie powinny być wgrywane do repozytorium (należy jest wpisać do pliku `.gitignore`) i powinny być przechowywane w bezpiecznym miejscu (zmienne środowiskowe lub [wirtualne sejfy](https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-intro)).
+
+ - [ ] **Auth explicit**
+
+    Zawsze podążaj ścieżką:
+    > Zabroń wszystkiego i dokładnie wybierz na co pozwolić
+    
+    Endpointy po stronie backendu powinny korzystać z atrybutów `[AllowAnonymous]` (w przypadku .NET) jak najrzadziej i być stosowane tylko do metod, co do których masz pewność, że przychodzący request nie musi być uwierzytelniony.
 
  - [ ] **Logi aplikacji**
 
@@ -202,7 +213,7 @@ Na rynku można znaleźć aplikacje do skanowania totpUri i generowania czasowyc
 - [Authy](https://play.google.com/store/apps/details?id=com.authy.authy) od Twilio
 - [Secure SignIn](https://play.google.com/store/apps/details?id=com.synology.securesignin) od Synology
 
-Każda z tych aplikacji działa na tej samej bazie - oferuje generowanie kodów jednorazowych. Obecnie aplikacje korzystają z [domyślnych wartości](https://stackoverflow.com/a/70313558) totp:
+Każda z tych aplikacji działa na tej samej bazie - oferuje generowanie kodów jednorazowych. Obecnie aplikacje korzystają z [domyślnych wartości](https://stackoverflow.com/a/70313558) TOTP:
 - **Okres:** 30 sekund (co ile generować nowy kod)
 - **Algorytm:** SHA1
 - **Cyfry:** 6 (ile cyfr generować)
