@@ -93,7 +93,7 @@ Ostatnie dotyczy
 20. Strona odświeża się, użytkownik jest wylogowany.
 
 # Workflow użytkownika video
-![](https://user-images.githubusercontent.com/60105537/229519238-139a4992-f08a-40cf-b8ae-c18b533d8d01.mp4)
+[](https://user-images.githubusercontent.com/60105537/229519238-139a4992-f08a-40cf-b8ae-c18b533d8d01.mp4)
 
 # Diagram rejestracji
 ![Diagram rejestracji](./readme-static/register-chart.png)
