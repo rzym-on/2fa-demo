@@ -36,6 +36,7 @@ Ostatnie dotyczy tego, że projekt skupia się na zrozumieniu idei działania 2F
  - `react-router-dom` - ścieżki (`login/`, `register/`) z widokami w aplikacji.
  - `react-toastify` - wyskakujące powiadomienia w rogu aplikacji.
  - `zustand` - state management (prostsze od reduxa).
+ - `vite`, `eslint/airbnb`, `prettier` - styl pisania aplikacji, taki osobiście preferuję i się sprawdza. Dlaczego [Vite](https://vitejs.dev/guide/why.html)? Szybki HMR, dependency resolving itp.
 
 ## Backend
  - `Microsoft.AspNetCore.Authentication.JwtBearer` - implementacja JWT jako sposobu autentykacji.
@@ -57,7 +58,7 @@ Ostatnie dotyczy tego, że projekt skupia się na zrozumieniu idei działania 2F
     ```sh
      Local:   http://127.0.0.1:3000/
     ```
-4. W drugim oknie konsoli przejdź do folderu `server/` i wykonak:
+4. W drugim oknie konsoli przejdź do folderu `server/` i wykonaj:
     ```sh
     dotnet restore
     ```
