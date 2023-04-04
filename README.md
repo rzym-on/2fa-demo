@@ -361,7 +361,7 @@ Sam projekt nie jest kompletnym rozwiązaniem produkcyjnym, a bardziej nauką/po
     
     Aplikacja korzysta z 2 form 2FA - TOTP (kody czasowe) i kody "spalane" (jednorazowe). W produkcyjnej aplikacji warto zatroszczyć się o np:
     - **Email OTP** - jednorazowe hasło wysyłane na skrzynkę mailową z krótkim okresem ważności.
-    - **Key OTP** - hasła generowane jednorazowo przez fizyczne klucze szyfrujące podpięte do urządzenia (te same kody prywatne w kluczu fizycznym i na serwerze i weryfikacja po stronie serwera, czy kod wygenerowany przez klucz fizyczny jest poprawny).
+    - **Key OTP** - uwierzytelnianie za pomocą standardu [WebAuthn](https://webauthn.guide/#intro), który zaprasza do współpracy fizyczne klucze/odciski palca/urządzenia BLE, które wygenerują jednorazowy kod (serwer przechowuje klucz publiczny, urządzenie/klucz posiada klucz prywatny, którym tworzy podpis, który dalej jest weryfikowany na serwerze kluczem publicznym przypisanym do użytkownika). Pomocne, jeśli chcemy dać użytkownikowi więcej swobody w wyborze 2 składnika, a czasami wygody (szybciej wykonać 2 składnik odciskiem palca niż przepisywaniem kodu z aplikacji).
     - **OAuth 2.0 + 2FA** - logowanie za pomocą zewnętrznego dostawcy, któremu ufamy (Google, Facebook, Microsoft, Twitter, Discord). Dzięki temu użytkowik nie musi wpisywać kodów przy każdym logowaniu, ale skorzystać z np. odcisku palca. **Dostawcy pozwalają wymuszać 2FA** jeśli użytkownik chce się zalogować do naszej aplikacji - warto przycisnąć użytkownika, że nie ma wyjścia i musi użyć 2FA (hasło + odcisk palca/potwierdzenie) u zewnętrznego dostawcy.
 
  - [ ] **Powiadomienia frontendowe**
