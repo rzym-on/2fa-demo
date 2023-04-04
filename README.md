@@ -24,8 +24,14 @@ Projekt powstał jako nauka uwierzytelniania 2-składnikowego (2FA), co obecnie 
 Ostatnie dotyczy tego, że projekt skupia się na zrozumieniu idei działania 2FA z TOTP. Projekt nie jest gotowy produkcji i nie było to istotą tego projektu.
 
 # Technologie wiodące
+
+## Kod pisany w:
  - [React](https://pl.reactjs.org)
  - [.NET 6.0](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
+
+## CLI do budowania, instalowania zależności i odpalania projektów:
+ - [npm+node](https://nodejs.org/en)
+ - (opcjonalnie) [dotnet CLI](https://learn.microsoft.com/en-us/dotnet/core/tools/) - do *restore packages* i odpalenia solucji w folderze `server/` (zamiast używania Visual Studio)
 
 # Użyte biblioteki
 ## Frontend
