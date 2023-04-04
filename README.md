@@ -6,6 +6,7 @@ Repozytorium, które zawiera (imho) najprostszą możliwą implementację 2FA z 
 - [Technologie wiodące](#technologie-wiodące)
 - [Użyte biblioteki](#użyte-biblioteki)
 - [Start projektu](#start-projektu)
+- [Kod Krok po kroku](#kod-krok-po-kroku)
 - [Podstawowy scenariusz użycia](#podstawowy-scenariusz-użycia)
 - [Workflow użytkownika video](#workflow-użytkownika-video)
 - [Diagram rejestracji](#diagram-rejestracji)
@@ -77,6 +78,191 @@ Ostatnie dotyczy tego, że projekt skupia się na zrozumieniu idei działania 2F
     lub za pomocą Visual Studio (Uruchomić projekt za pomocą `LocalDebug`).
 6. Adres serwera w pliku `front/src/appConfig.ts` powinien pokrywać się z tym w pliku `server/Properties/launchSettings.json` w sekcji `profiles.LocalDebug.applicationUrl` z początkiem `http://`.
 7. Jeśli wszystko przeszło bez błędów - otworzyć przeglądarkę i wejść do aplikacji (`http://localhost:3000`)
+
+# Kod Krok po kroku
+Żeby było trochę łatwiej (zamiast rzucania ogólnymi pojęciami) krok po kroku będzie pokazane co się dzieje w kodzie podczas rejestracji i logowania
+
+## Rejestracja
+
+1. React wysyła fetch:
+    ```ts
+    response = await fetch(`${appConfig.apiUrl}/user/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: userName,
+        password,
+      }),
+    });
+    ```
+
+2. Zapytanie trafia do `UserController.cs`:
+    ```c#
+    [AllowAnonymous]
+    [HttpPost]
+    [Route("register")]
+    public ContentResult Register(AuthData data)
+    {
+      // 1. Sprawdza czy użytkownik istnieje w bazie
+      var userDb = JsonDbService.GetUser(data.Username);
+      if (userDb != null && userDb.Username  == data.Username)
+        throw new Exception("Użytkownk już istnieje w bazie danych");
+      
+      // 2. Generuje kody jednorazowe
+      var oneTimeCodes = Guid.NewGuid().GetOneTimeCodes();
+
+      // 3. Tworzy nowego użytkownika
+      // Hashuje hasło
+      // Hashuje kody jednorazowe
+      // Tworzy totp-secret
+      var user = new User
+      {
+        Username = data.Username,
+        Password = new PasswordHashService(data.Password).ToArray(),
+        TotpSecret = CryptoService.GetTotpSecret(),
+        OneTimeCodes = oneTimeCodes
+            .Select(x => new PasswordHashService(x).ToArray())
+            .ToArray()
+      };
+
+      // 4. Dodaje użytkownika do bazy
+      JsonDbService.AddUser(user);
+
+      // 5. Tworzy totp-uri z którego będie wygenerowany kod QR
+      var result = new
+      {
+        totp = new OtpUri(OtpType.Totp, user.TotpSecret, user.Username, "2fa-demo-app").ToString(),
+        oneTimeCodes
+      };
+
+      // 6. Zwraca totp-uri i kody jednorazowe
+      return new ContentResult
+      {
+        StatusCode = 200,
+        Content = JsonSerializer.Serialize(result)
+      };
+    }
+    ```
+3. React wyświetla zwrócone kody jednorazowe w html i generuje QR za pomocą biblioteki `qrcode.react`:
+    ```html
+    <QRCodeSVG
+      style={{ margin: '15px' }}
+      size={300}
+      includeMargin
+      value={totp}
+    />
+    ```
+    Gdzie `totp` to totp-uri zwrócone z serwera
+
+## Logowanie
+
+1. React wysyła fetch:
+    ```ts
+    response = await fetch(`${appConfig.apiUrl}/user/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: userName,
+        password,
+      }),
+    });
+    ```
+
+2. Zapytanie trafia fo `UserController.cs`:
+    ```c#
+    [AllowAnonymous]
+    [HttpPost]
+    [Route("login")]
+    public string? Login(AuthData data)
+    {
+      // 1. Sprawdza, czy użytkownik jest w bazie
+      var user = JsonDbService.GetUser(data.Username);
+      if (user == null) throw new Exception("Nie ma takiego użytkownika w bazie");
+
+      // 2. Sprawdza, czy zahashowane hasło w bazie jest poprawne z tym w request
+      if (!user.ValidatePassword(data.Password)) throw new Exception("Nieprawidłowe hasło");
+
+      // 3. Generuje krótki JWT dla danego użytkownika, który powinien być odesłany z 2 składnikiem
+      var shortJwt = JwtService.GenerateForUser(user, _appSettings, twoFaToken:true);
+
+      return shortJwt;
+    }
+    ```
+
+3. React wyświetla pole do wpisania kodu jednorazowego i po wpisaniu wysyła żądanie:
+    ```ts
+    response = await fetch(`${appConfig.apiUrl}/user/2fa`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `bearer ${shortToken}`,
+      },
+      body: JSON.stringify(pin),
+    });
+    ```
+    Gdzie `shortToken` to token zwrócony przed chwilą z serwera, a `pin` to kod jednorazowy lub kod totp z aplikacji mobilnej.
+
+4. Zapytanie trafia do `UserController.cs`:
+    ```c#
+    [AllowAnonymous]
+    [HttpPost]
+    [Route("2fa")]
+    public string? Login2Fa([FromBody]string pinCode)
+    {
+      // 1. Wyciąga token 2fa z requestu
+      var token = JwtService.GetTokenFromRequest(Request);
+      if (token == null) throw new Exception("Nie ma jwt w zapytaniu");
+
+      // 2. Pobiera usera z tokenu (jeśli token nie jest typem 2fa, to zwróci null)
+      var user = JwtService.GetUserFromToken(token, _appSettings, true);
+      if (user == null) throw new Exception("Błędny token - brak użytkownia lub token nie jest 2fa");
+
+      // 3. Szuka użytkownika w bazie
+      user = JsonDbService.GetUser(user.Username);
+      if (user == null) throw new Exception("Brak użytkownika w bazie");
+
+      // 4. Tworzy instancję Totp, żeby serwer wygenerował 6-cyfrowy pin
+      var totp = new Totp(Base32Encoding.ToBytes(user.TotpSecret));
+
+      // 5. Serwer sprawdza, czy podany pin zgadza się z wygenerowanym po stronie serwera pinem na bazie TotpSecret
+      var isValid = totp.VerifyTotp(pinCode, out _, VerificationWindow.RfcSpecifiedNetworkDelay);
+
+      // 6. Jeśli nie, to sprawdza, czy pin jest kodem jednorazowym
+      if (!isValid)
+      {
+        var usedKey = user.OneTimeCodes
+          .FirstOrDefault(x =>
+          {
+            PasswordHashService hash = new PasswordHashService(x);
+            return hash.Verify(pinCode);
+          });
+        if (usedKey == null) return null;
+
+        // 7. Jeśli kod jednorazowy został wykorzystany, usuwamy z bazy
+        user.OneTimeCodes = user.OneTimeCodes.Except(new [] { usedKey }).ToArray();
+      }
+
+      // 8. Generuje właściwy JWT do pozostałych obszarów systemu
+      var jwt = JwtService.GenerateForUser(user, _appSettings);
+
+      return jwt;
+    }
+    ```
+
+5. React dostaje JWT i zapisuje go po swojej stronie do autentykacji pozostałych zapytań:
+    ```ts
+    response = await fetch(`${appConfig.apiUrl}/WeatherForecast`, {
+      method: 'GET',
+      headers: {
+        Authorization: `bearer ${token}`,
+      },
+    });
+    ```
+    Gdzie `token` to właściwy JWT z dłuższym okresem ważności.
 
 # Podstawowy scenariusz użycia
 1. Użytkownik otwiera aplikację front-end: `localhost:3000`.
